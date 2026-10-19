@@ -16,7 +16,9 @@ has an exit check. We don't move on until the check passes.
 
 ## Phase 0: Foundation
 
-**Status:** built. Waiting on a first launch on each simulator.
+**Status:** built, and CI is green (lint, core tests on Linux and macOS, and
+app builds for iOS, macOS and visionOS). Waiting on a first launch on each
+simulator.
 
 - [x] XcodeGen `project.yml` and the multiplatform `Glidepath` app target.
 - [x] Packages (`FlightCore`, `FlightScene`, `FlightUI`, `FlightServices`,
