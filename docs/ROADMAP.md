@@ -12,18 +12,25 @@ has an exit check. We don't move on until the check passes.
 | 2026-10-19 | **Altitude is part of the rules, as flight levels.** Aircraft stack at up to three heights and pass over and under each other. | Same rules on every platform. On Vision Pro you set the level with hand height while drawing. On iPhone and iPad you tap for ▲/▼. On Mac you scroll. See [GAME_DESIGN.md](GAME_DESIGN.md#flight-levels). |
 | 2026-10-19 | **Coastal Field stays single-level.** Island Strip adds a second level, and Mountain Valley has three. | New players learn the basics first. A single-level map plays exactly like the classic game. |
 | 2026-10-19 | **Fully free 3D flight is deferred.** | It's harder to read, depth is hard to control precisely, and it would split the rules across platforms. It could come back later as an experimental Vision Pro-only mode. |
+| 2026-10-19 | **The game is called Glidepath.** | Trademark and App Store name checks are still to do (Phase 5). Code modules keep the brand-neutral `Flight` prefix, so a rename would only touch the app target. |
 
 ## Phase 0: Foundation
 
-- Set up XcodeGen `project.yml`, the multiplatform app target, and empty
-  packages (`FlightCore`, `FlightScene`, `FlightUI`, `FlightServices`,
-  `FlightContent`).
-- Add the Swift 6 settings, the `swift-format` config, and `.gitignore`.
-- Add CI: Linux `swift test` for the core, and macOS `xcodebuild` for the iOS
-  Simulator, macOS and the visionOS Simulator.
+**Status:** built. Waiting on a first launch on each simulator.
 
-**Exit check:** an empty `RealityView` app launches on the iPhone simulator,
-on the Mac, and on the Vision Pro simulator, and CI is green.
+- [x] XcodeGen `project.yml` and the multiplatform `Glidepath` app target.
+- [x] Packages (`FlightCore`, `FlightScene`, `FlightUI`, `FlightServices`,
+  `FlightContent`). They're empty apart from a greybox airfield in a
+  `RealityView` and a title badge.
+- [x] Swift 6 settings, the `swift-format` config, `.gitignore`, and
+  per-developer signing through `Config/Local.xcconfig`.
+- [x] CI: on Linux, lint and test the core; on macOS, test the core and build
+  for the iOS Simulator, macOS and the visionOS Simulator.
+- [ ] Launch on the iPhone simulator, on the Mac and on the Vision Pro
+  simulator. This needs Xcode on a Mac.
+
+**Exit check:** the greybox `RealityView` app launches on the iPhone
+simulator, on the Mac, and on the Vision Pro simulator, and CI is green.
 
 ## Phase 1: Core simulation and a playable 2D debug build
 
@@ -90,6 +97,8 @@ hardware, not only in the simulator, including on the multi-level test map.
   variants.
 - Interactive tutorial, plus a short second lesson on flight levels that
   plays the first time a multi-level map is opened.
+- Trademark and App Store name check for Glidepath, before the app icon and
+  logo are made.
 
 **Exit check:** someone who has never played it gets to a first landing
 without help and wants another go.
@@ -153,20 +162,18 @@ without help and wants another go.
 
 ## Open questions
 
-1. **Name and theme.** Ideas so far: *Glidepath*, *Holding Pattern*, *Clear to
-   Land*, *Tower*. All need trademark and App Store checks.
-2. **Minimum OS.** I recommend 26 everywhere. Do you want wider reach (18), or
-   to go to 27 now?
-3. **Business model.** Paid up front, free with map packs, or pitching to
+1. **Minimum OS.** I recommend 26 everywhere, and Phase 0 is set up that way.
+   Do you want wider reach (18), or to go to 27 now?
+2. **Business model.** Paid up front, free with map packs, or pitching to
    Apple Arcade? The answer affects whether StoreKit is in v1.
-4. **visionOS scope for v1.** I recommend the volume only, with Tower Mode
+3. **visionOS scope for v1.** I recommend the volume only, with Tower Mode
    after launch. Or should immersive play be part of launch?
-5. **Failure rules.** One crash ends the run in Classic, and Relaxed has three
+4. **Failure rules.** One crash ends the run in Classic, and Relaxed has three
    strikes. Is that right?
-6. **Leaderboards across platforms.** If visionOS gets a speed multiplier, or
+5. **Leaderboards across platforms.** If visionOS gets a speed multiplier, or
    hand-height level control turns out to be an advantage, should it have its
    own leaderboards?
-7. **Map unlocks.** Unlock maps through progression, or make everything
+6. **Map unlocks.** Unlock maps through progression, or make everything
    available from the start?
-8. **Multiplayer.** How important is SharePlay co-op to you? It's cheap to
+7. **Multiplayer.** How important is SharePlay co-op to you? It's cheap to
    keep possible, but expensive to build.

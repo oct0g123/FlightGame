@@ -105,7 +105,7 @@ iOS/iPadOS 26, macOS 26 and visionOS 26.
 ```
  ┌──────────────── App target ────────────────┐
  │ iOS · iPadOS · macOS · visionOS            │
- │ FlightGameApp: scenes per platform         │
+ │ GlidepathApp: scenes per platform          │
  └──────┬──────────────┬───────────────┬──────┘
         │              │               │
  ┌──────▼─────┐ ┌──────▼───────┐ ┌─────▼──────────┐
@@ -637,7 +637,7 @@ A custom crash pattern on iPhone uses Core Haptics.
 ### 8.1 Scenes
 
 ```swift
-@main struct FlightGameApp: App {
+@main struct GlidepathApp: App {
     var body: some Scene {
         WindowGroup(id: "airfield") { AirfieldVolume() }
             .windowStyle(.volumetric)
@@ -856,38 +856,53 @@ runway itself, and the ambient bed comes from the terrain.
 ## 14. Project layout and build
 
 ```
-FlightGame/
-├─ project.yml            XcodeGen spec → FlightGame.xcodeproj
+FlightGame/ (repo)
+├─ project.yml            XcodeGen spec → Glidepath.xcodeproj
 ├─ App/
-│  ├─ FlightGameApp.swift  scenes per platform
-│  ├─ Platform/            iOS/, macOS/, visionOS/ specifics
-│  └─ Resources/           asset catalog, Info.plist, entitlements
+│  └─ GlidepathApp.swift   scenes per platform
+├─ Config/
+│  ├─ Base.xcconfig        shared; includes Local.xcconfig
+│  ├─ Local.xcconfig.example
+│  └─ Info-visionOS.plist  opens the app as a volume
 ├─ Packages/
-│  ├─ FlightCore/          Sources/, Tests/
+│  ├─ FlightCore/          Sources/, Tests/; builds on Linux
 │  ├─ FlightScene/
 │  ├─ FlightUI/
 │  ├─ FlightServices/
-│  └─ FlightContent/       Reality Composer Pro package
-├─ Tools/
-│  ├─ balance/             headless bot runs
-│  └─ levelcheck/          level validator
+│  └─ FlightContent/       becomes the RCP package
+├─ Tools/                  later: balance/, levelcheck/
+├─ .github/workflows/      CI
 └─ docs/
 ```
 
-- **Project file:** XcodeGen generates the `.xcodeproj` from `project.yml`,
-  and the generated project is gitignored. The project stays text-defined and
-  mergeable, and it can be edited from environments without Xcode, including
-  cloud agent sessions. Tuist is the heavier alternative.
+- **Project file:** XcodeGen generates `Glidepath.xcodeproj` from
+  `project.yml`, and the generated project is gitignored. The project stays
+  text-defined and mergeable, and it can be edited from environments without
+  Xcode, including cloud agent sessions. Tuist is the heavier alternative.
+- **Naming:** the app is called Glidepath. Code modules keep the
+  brand-neutral `Flight` prefix, so a rename would only touch the app target
+  and the project spec.
 - **One multiplatform app target:** iPhone, iPad, Mac and Apple Vision
-  destinations. Platform branches (`#if os(visionOS)`) are confined to
-  `App/Platform` and the input and camera files in `FlightScene`.
+  destinations. Platform branches (`#if os(visionOS)`) stay in a few places:
+  the app's scenes, `RootView`, and the input and camera code in
+  `FlightScene`.
+- **Signing:** `Config/Base.xcconfig` holds placeholder values and includes
+  the gitignored `Config/Local.xcconfig`, where each developer sets their own
+  team ID and bundle ID prefix.
 - **Swift settings:**
-  - Swift 6 language mode with complete strict concurrency.
-  - App and UI modules use default MainActor isolation.
-  - `FlightCore` value types are `Sendable` and nonisolated.
-- **Formatting:** `swift-format`, with a config checked into the repo.
+  - Swift 6 language mode with complete strict concurrency, and Swift tools
+    version 6.2 for the packages (Xcode 26 or later).
+  - Approachable concurrency everywhere: the `NonisolatedNonsendingByDefault`
+    and `InferIsolatedConformances` features.
+  - The app target, `FlightScene` and `FlightUI` default to MainActor
+    isolation.
+  - `FlightCore`, `FlightServices` and `FlightContent` stay nonisolated.
+    `FlightCore`'s value types are `Sendable`.
+- **Formatting:** `swift-format`, with the config in `.swift-format`. CI fails
+  on lint errors.
 - **CI (GitHub Actions):**
-  - **Linux:** `swift test` for `FlightCore` in the official Swift container.
-    It's fast and cheap.
-  - **macOS:** build the app for the three platforms and run `FlightCore`
-    tests again natively.
+  - **Linux** (Swift 6.3 container): lint, then `swift test` for
+    `FlightCore`.
+  - **macOS** (`macos-26` runner, its default Xcode): `FlightCore` tests, and
+    unsigned app builds for the iOS Simulator, macOS and the visionOS
+    Simulator.

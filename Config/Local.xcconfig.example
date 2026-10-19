@@ -1,0 +1,7 @@
+// Copy to Config/Local.xcconfig (gitignored) and fill in your own values.
+
+// Your Apple Developer team ID (Xcode > Settings > Accounts).
+DEVELOPMENT_TEAM = ABCDE12345
+
+// Reverse-DNS prefix you own. The app's bundle ID becomes <prefix>.glidepath.
+BUNDLE_ID_PREFIX = com.yourname

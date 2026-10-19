@@ -1,20 +1,63 @@
-# FlightGame (working title)
+# Glidepath
 
 An air-traffic-control arcade game for iPhone, iPad, Mac and Apple Vision
 Pro. Draw paths to guide incoming aircraft to their matching runways, keep
 them apart, and survive as traffic builds. On Vision Pro the airfield is a
 diorama on your table.
 
-> **Status:** planning. No code yet.
+> **Status:** Phase 0 (project skeleton). The app shows a greybox airfield.
+> Gameplay starts in Phase 1. See the [roadmap](docs/ROADMAP.md).
+
+## Getting started
+
+You need a Mac with Xcode 26 or later, and
+[XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
+
+```sh
+cp Config/Local.xcconfig.example Config/Local.xcconfig  # set your team ID and bundle ID prefix
+xcodegen generate
+open Glidepath.xcodeproj
+```
+
+Choose the **Glidepath** scheme, then an iPhone, iPad, Mac or Apple Vision
+Pro destination. Run `xcodegen generate` again whenever `project.yml`
+changes. The `.xcodeproj` isn't committed.
+
+**Core tests** run anywhere Swift 6.2 or later is installed, Linux included:
+
+```sh
+swift test --package-path Packages/FlightCore
+```
+
+**Formatting:**
+
+```sh
+swift format lint --strict --recursive App Packages       # what CI checks
+swift format format --in-place --recursive App Packages   # fix in place
+```
+
+## Layout
+
+| Path                      | What's there                                                  |
+|---------------------------|---------------------------------------------------------------|
+| `project.yml`             | XcodeGen spec for the multiplatform `Glidepath` app target     |
+| `App/`                    | The app entry point and its scenes per platform                |
+| `Config/`                 | Shared xcconfig, your local signing settings, visionOS Info.plist |
+| `Packages/FlightCore`     | Rules and simulation. Pure Swift, so it builds and tests on Linux. |
+| `Packages/FlightScene`    | RealityKit: the game view, scene, input and camera            |
+| `Packages/FlightUI`       | SwiftUI: menus, HUD and screens                               |
+| `Packages/FlightServices` | Game Center, saved progress, audio and haptics                |
+| `Packages/FlightContent`  | Models, materials and level files                             |
+| `docs/`                   | Design, architecture and roadmap                              |
 
 ## Docs
 
-- **[Game design](docs/GAME_DESIGN.md):** the loop, aircraft, paths,
-  landing, difficulty, modes, maps, look and feel, accessibility.
+- **[Game design](docs/GAME_DESIGN.md):** the loop, aircraft, paths, flight
+  levels, landing, difficulty, modes, maps, look and feel, accessibility.
 - **[Architecture](docs/ARCHITECTURE.md):** tech decisions, modules,
   simulation, rendering, input, visionOS, services, content pipeline, testing.
-- **[Roadmap](docs/ROADMAP.md):** phases with exit checks, technical spikes,
-  risks, open questions.
+- **[Roadmap](docs/ROADMAP.md):** decision log, phases with exit checks,
+  technical spikes, risks, open questions.
 
 ## Key decisions at a glance
 

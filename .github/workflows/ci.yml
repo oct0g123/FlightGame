@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  core-linux:
+    name: Lint and test FlightCore (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.3
+    steps:
+      - uses: actions/checkout@v5
+      - name: Lint
+        run: swift format lint --strict --recursive App Packages
+      - name: Test FlightCore
+        run: swift test --package-path Packages/FlightCore
+
+  core-macos:
+    name: Test FlightCore (macOS)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v5
+      - name: Show toolchain
+        run: xcodebuild -version && swift --version
+      - name: Test FlightCore
+        run: swift test --package-path Packages/FlightCore
+
+  build:
+    name: Build app (${{ matrix.platform }})
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: iOS
+            destination: generic/platform=iOS Simulator
+          - platform: macOS
+            destination: generic/platform=macOS
+          - platform: visionOS
+            destination: generic/platform=visionOS Simulator
+    steps:
+      - uses: actions/checkout@v5
+      - name: Show toolchain
+        run: xcodebuild -version
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate Xcode project
+        run: xcodegen generate
+      - name: Build
+        run: >-
+          xcodebuild build
+          -project Glidepath.xcodeproj
+          -scheme Glidepath
+          -destination "${{ matrix.destination }}"
+          CODE_SIGNING_ALLOWED=NO

@@ -1,4 +1,4 @@
-# Game Design
+# Glidepath: Game Design
 
 > Status: draft for discussion. All numbers are starting points that live in
 > data files and get tuned through play and headless bot runs (see
@@ -20,10 +20,12 @@ your hand as you draw.
 
 ### On the name
 
-The game you remember is **Flight Control** (Firemint, 2009, later EA). Game
-mechanics can't be owned, but the name, art, sounds and UI can. We use our
-own name and our own look throughout. The repo/module prefix is `Flight` for
-now. The final title is an open question (see [ROADMAP.md](ROADMAP.md#open-questions)).
+The game is called **Glidepath**. A trademark and App Store name check is
+still to do, before the icon and logo are made (Phase 5).
+
+The game that inspired it is **Flight Control** (Firemint, 2009, later EA).
+Game mechanics can't be owned, but the name, art, sounds and UI can, so we
+use our own throughout.
 
 ## Core loop
 
