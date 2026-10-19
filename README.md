@@ -5,8 +5,24 @@ Pro. Draw paths to guide incoming aircraft to their matching runways, keep
 them apart, and survive as traffic builds. On Vision Pro the airfield is a
 diorama on your table.
 
-> **Status:** Phase 0 (project skeleton). The app shows a greybox airfield.
-> Gameplay starts in Phase 1. See the [roadmap](docs/ROADMAP.md).
+> **Status:** Phase 1. The game is playable as a flat 2D playtest on iPhone,
+> iPad and Mac, while the rules get tuned. Vision Pro shows the 3D
+> placeholder for now. See the [roadmap](docs/ROADMAP.md).
+
+## Playtest controls
+
+| Action                  | iPhone and iPad              | Mac                              |
+|-------------------------|------------------------------|----------------------------------|
+| Draw a path             | Drag from an aircraft; several fingers at once | Drag from an aircraft |
+| Change level            | Tap an aircraft, then ▲ / ▼  | Hover and press ↑ / ↓, or click for ▲ / ▼ |
+| Pause                   | Pause button                 | Space or the pause button        |
+| Map, mode, autopilot, 3D preview | ⋯ menu              | ⋯ menu                           |
+
+Land each aircraft on the runway with its colour and glyph: ● props on the
+short runway, ▲ jets on the long one, ■ helicopters on the pad (from any
+direction). A path locks on and turns solid when it ends lined up with the
+right runway. Coastal Field has one flight level. Test Range has three, plus
+terrain you can only clear by flying above it.
 
 ## Getting started
 
@@ -43,7 +59,7 @@ swift format format --in-place --recursive App Packages   # fix in place
 | `project.yml`             | XcodeGen spec for the multiplatform `Glidepath` app target     |
 | `App/`                    | The app entry point and its scenes per platform                |
 | `Config/`                 | Shared xcconfig, your local signing settings, visionOS Info.plist |
-| `Packages/FlightCore`     | Rules and simulation. Pure Swift, so it builds and tests on Linux. |
+| `Packages/FlightCore`     | Rules and simulation, plus level and difficulty JSON. Pure Swift, so it builds and tests on Linux. |
 | `Packages/FlightScene`    | RealityKit: the game view, scene, input and camera            |
 | `Packages/FlightUI`       | SwiftUI: menus, HUD and screens                               |
 | `Packages/FlightServices` | Game Center, saved progress, audio and haptics                |

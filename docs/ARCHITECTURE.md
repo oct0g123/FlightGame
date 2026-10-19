@@ -155,11 +155,11 @@ multiplatform app target.
 
 | Module           | Depends on                     | Responsibility                                       |
 |------------------|--------------------------------|------------------------------------------------------|
-| `FlightCore`     | Foundation                     | Rules: world model, step pipeline, paths, landing, collision, spawning, difficulty, RNG, level schema, replay, autopilot, `GameSession`, `PathDrawingController` |
+| `FlightCore`     | Foundation                     | Rules: world model, step pipeline, paths, landing, collision, spawning, difficulty, RNG, level schema, replay, autopilot, `GameSession`, `PathDrawingController`. Also bundles the level and difficulty JSON, so tests on every platform validate the real files. |
 | `FlightScene`    | Core, Content, RealityKit      | `GameView` (wraps `RealityView`), scene building from level data, presenters, path ribbons, camera rig, input routing per platform |
 | `FlightUI`       | Core, Scene, Services, SwiftUI | App navigation, title / attract mode, HUD, pause, game over, settings, tutorial overlays |
 | `FlightServices` | Core, GameKit, AVFAudio        | Profile and stats storage, iCloud key-value sync, Game Center, audio director, haptics |
-| `FlightContent`  | (Reality Composer Pro package) | USDZ models, terrain, shader graphs, particle presets, audio files, level JSON |
+| `FlightContent`  | (Reality Composer Pro package) | USDZ models, terrain, shader graphs, particle presets, audio files |
 
 ## 4. Simulation (`FlightCore`)
 
@@ -390,9 +390,10 @@ Each spawn works like this:
 ### 4.9 Determinism, replays and the daily challenge
 
 - **Separate RNG streams:**
-  - The *schedule* stream decides kind, edge and timing.
+  - The *schedule* stream decides kind, level, edge and timing.
   - The *fairness* stream handles re-picks.
-  - The *cosmetic* stream drives variation that doesn't affect play.
+  - A *cosmetic* stream, for variation that doesn't affect play, gets added
+    when something needs it.
 
   Because fairness re-picks have their own stream, a daily seed produces the
   same arrival script for every player, even though their play differs.
@@ -554,6 +555,11 @@ propeller spin, rotor blur and ring pulses.
 - **Input:** we own the camera, so a screen point maps to a ray and then to
   the ground plane with simple math we can unit-test, without relying on
   framework hit-testing.
+- **Virtual camera:** on iOS, `RealityView` defaults to an AR view of the
+  device camera, so `GameView` sets `content.camera = .virtual`. The
+  background is the SwiftUI background style, set to the sky colour.
+- **Started:** `CameraFit` in `FlightScene` already does the fitting for the
+  Phase 0 placeholder, with tests.
 
 ### 5.5 Lighting and materials
 

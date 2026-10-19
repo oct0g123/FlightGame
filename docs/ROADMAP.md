@@ -28,6 +28,9 @@ simulator.
   per-developer signing through `Config/Local.xcconfig`.
 - [x] CI: on Linux, lint and test the core; on macOS, test the core and build
   for the iOS Simulator, macOS and the visionOS Simulator.
+- [x] Follow-up fixes from the mockup review: iOS uses the virtual camera
+  (it defaulted to an AR view of the device camera), an explicit sky
+  background, and a camera that fits the field at any aspect ratio.
 - [ ] Launch on the iPhone simulator, on the Mac and on the Vision Pro
   simulator. This needs Xcode on a Mac.
 
@@ -36,18 +39,25 @@ simulator, on the Mac, and on the Vision Pro simulator, and CI is green.
 
 ## Phase 1: Core simulation and a playable 2D debug build
 
-- Build `FlightCore`:
+**Status:** built and tested. Waiting on playtesting on a device.
+
+- [x] Build `FlightCore`:
   - `Vec2`, the RNG streams, the world model, and the step pipeline.
   - Paths, landing, collision with hysteresis, the spawner with fairness,
-    difficulty profiles, and level JSON.
+    difficulty profiles, and level JSON (Coastal Field, plus a three-level
+    Test Range with terrain; Classic and Relaxed).
   - Flight levels: climb and descent, the vertical separation check,
     descent planning with "too high" rejection, level marks, and obstacles.
   - `GameSession`, `PathDrawingController`, replay, and the autopilot.
-- Build a `DebugCanvasView`: a SwiftUI `Canvas` that draws circles, lines and
-  runways, and is playable with touch or mouse on iPhone and Mac. It shows
-  each aircraft's level as a number, with ▲/▼ on tap and the arrow keys on
-  Mac.
-- Write unit tests, a determinism test, and an autopilot soak test.
+- [x] Build the playtest view (`FlightUI/Playtest`): a SwiftUI `Canvas` that
+  draws the field, runways, paths and aircraft, and is playable with touch or
+  mouse on iPhone, iPad and Mac. It shows each aircraft's level as a number,
+  with ▲/▼ on tap and the arrow keys on Mac. It also has a map and mode
+  picker, an autopilot toggle, and the 3D preview.
+- [x] Write unit tests, a determinism test, and an autopilot soak test (57
+  tests, run on Linux and macOS in CI).
+- [ ] Playtest on device and tune: speeds, turn rates, spawn curve, grab
+  radius, path smoothing, and how levels feel.
 
 **Exit check:** the game is *fun with circles*, both single-level and with
 three levels. If the loop isn't fun at this stage, art won't fix it, and this

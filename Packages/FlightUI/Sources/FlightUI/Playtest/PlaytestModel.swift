@@ -47,8 +47,11 @@ final class PlaytestModel {
     }
 
     init() {
-        levelID = BuiltInContent.levelIDs[0]
-        profileID = Self.profiles[0].id
+        // Locals, because @Observable properties can't be read until every one is set.
+        let levelID = BuiltInContent.levelIDs[0]
+        let profileID = Self.profiles[0].id
+        self.levelID = levelID
+        self.profileID = profileID
         session = Self.makeSession(levelID: levelID, profileID: profileID)
     }
 
