@@ -54,13 +54,26 @@ SceneKit was proposed. I recommend **RealityKit on every platform** instead.
 GameplayKit hasn't had a meaningful update in years. It isn't worth tying the
 core to it, and adopting it later for one specific job is easy.
 
-### 1.4 The simulation is 2D; the presentation is 3D
+### 1.4 The simulation is 2D plus flight levels; the presentation is 3D
 
-Everything that decides the game happens on a flat plane. The simulation is
-**2D, deterministic, fixed-timestep, pure Swift, and imports no Apple
-frameworks.** The presentation layer maps it into 3D: field `(x, y)` becomes
-the ground plane, and altitude is cosmetic (a glide descent onto runways,
-helicopters hovering low). On visionOS that altitude gives real depth.
+Everything that decides the game happens on a horizontal plane plus up to
+three stacked flight levels (see
+[GAME_DESIGN.md](GAME_DESIGN.md#flight-levels)). The simulation is
+**deterministic, fixed-timestep, pure Swift, and imports no Apple
+frameworks.**
+
+- **Horizontal position** is 2D, in field units.
+- **Height** is a single number in *level units*: 0 is the ground and 1–3 are
+  the flight levels. Aircraft move between levels at a set climb rate, so
+  height is continuous, but the player only ever picks a level.
+- **Presentation** maps this into 3D. Field `(x, y)` becomes the ground plane,
+  and level units become height using a spacing chosen per platform. The
+  spacing is larger on visionOS, so hand height can pick a level reliably.
+
+Fully free 3D flight was considered and deferred. Continuous height is hard to
+read, it's hard to control precisely with indirect pinch, and flat screens
+couldn't play the same rules. Levels deliver most of the 3D payoff with one
+ruleset for every platform.
 
 This buys us:
 
@@ -123,7 +136,7 @@ Swift standard library and Foundation.
         │  platform gesture
         ▼
  InputRouter (FlightScene)    screen or 3D → field space
-        │  PointerEvent(id, phase, point)
+        │  PointerEvent(id, phase, point, height?)
         ▼
  PathDrawingController (Core) picks aircraft → Commands
         │
@@ -155,6 +168,9 @@ multiplatform app target.
 - **Field units:** each map is a rectangle, 160 × 100 u by default. The
   origin is bottom-left, `+y` points away from the player, and headings are
   radians counter-clockwise from `+x`.
+- **Height:** level units, where 0 is the ground and 1, 2 and 3 are flight
+  levels. Each map declares how many levels it has. With one level, cruising
+  height is fixed at 1 and the rules reduce to the classic 2D game.
 - **Fixed timestep:** 60 Hz (`dt = 1/60`). Presentation interpolates between
   the previous and current tick, so 90 Hz (Vision Pro) and 120 Hz (ProMotion)
   displays look smooth without a faster simulation.
@@ -169,10 +185,11 @@ multiplatform app target.
 public struct World: Sendable {
     public var tick: UInt64 = 0
     public var aircraft: [Aircraft] = []   // dense; removal = swap-remove
-    public let level: Level                // runways, bounds, no-fly zones
+    public let level: Level                // runways, bounds, flight levels,
+                                           // no-fly zones
     public var spawner: SpawnerState
     public var score = Score()
-    public var phase: Phase = .playing     // .playing, .crashed(a, b, at)
+    public var phase: Phase = .playing     // .playing, .crashed(Crash)
     var rng: RandomStreams                 // separate streams, see 4.9
 }
 
@@ -184,7 +201,8 @@ public struct Aircraft: Sendable, Identifiable {
     public var heading: Float
     public var previousHeading: Float
     public var turnRate: Float             // drives the visual bank
-    public var altitude: Float             // cosmetic, 0…1
+    public var altitude: Float             // level units; 0 = ground
+    public var targetLevel: UInt8          // 1…level.flightLevels
     public var state: FlightState          // .entering, .flying,
                                            // .landing(runway, s), .landed
     public var path: FlightPath?
@@ -205,11 +223,13 @@ is a pure function of its inputs. Each tick runs in this order:
 2. **Spawner:** advance the difficulty clock, emit entry warnings, spawn
    aircraft (with fairness checks).
 3. **Movement:** follow the path or fly straight, turn back at the edge, keep
-   within turn-rate limits, update altitude.
+   within turn-rate limits, apply level marks the aircraft passes, and climb
+   or descend toward the target level.
 4. **Landing:** commit-zone checks and landing roll-out. Remove aircraft that
    have landed.
-5. **Separation:** proximity warnings (with begin/end hysteresis) and
-   collisions. A crash sets `phase = .crashed`.
+5. **Separation:** proximity warnings (with begin/end hysteresis),
+   collisions between aircraft (horizontal distance *and* height), and
+   collisions with obstacles. A crash sets `phase = .crashed`.
 6. **Scoring and events.**
 
 With at most about 40 aircraft, the all-pairs check is about 800 distance
@@ -220,20 +240,23 @@ tests per tick, so we don't need a spatial hash.
 ```swift
 public enum Command: Sendable, Codable {
     case startPath(AircraftID, at: Vec2)
-    case extendPath(AircraftID, points: [Vec2])
+    case extendPath(AircraftID, points: [Vec2], level: UInt8?) // visionOS: hand height
     case finishPath(AircraftID)
+    case setLevel(AircraftID, UInt8)                        // ▲/▼, scroll, flick
 }
 
 public enum GameEvent: Sendable {
-    case arrivalWarning(edgePoint: Vec2, kind: AircraftKind, in: Float)
+    case arrivalWarning(edgePoint: Vec2, kind: AircraftKind, level: UInt8, in: Float)
     case spawned(AircraftID)
     case pathCommitted(AircraftID, RunwayID)
-    case pathRejected(AircraftID, at: Vec2)          // wrong runway
+    case pathRejected(AircraftID, at: Vec2, reason: RejectReason) // .wrongRunway, .tooHigh
+    case levelChanged(AircraftID, UInt8)
     case touchedDown(AircraftID, RunwayID)
     case landed(AircraftID)
     case conflictBegan(AircraftID, AircraftID)
     case conflictEnded(AircraftID, AircraftID)
     case crashed(AircraftID, AircraftID, at: Vec2)
+    case crashedIntoTerrain(AircraftID, at: Vec2)
 }
 ```
 
@@ -246,6 +269,7 @@ almost for free.
 public struct FlightPath: Sendable {
     var points: [Vec2]          // resampled every 1.0 u
     var head: Int               // first point not yet consumed
+    var levelMarks: [LevelMark] // sparse: "change to level L at point i"
     var committedRunway: RunwayID?
     var isDrawing: Bool
 }
@@ -263,11 +287,24 @@ public struct FlightPath: Sendable {
   cuts the corner slightly, which reads as natural. `head` advances to the
   nearest point ahead within a small window. If this feels too loose, we can
   add an exact-follow mode.
-- **Commit:** on every extend, check whether the last point is inside the
-  capture radius of a runway that accepts this kind, and whether the tail's
-  direction (the last 4 u) is within that runway's heading tolerance. If so,
-  replace the tail with a generated glide segment blended onto the centreline,
-  set `committedRunway`, and ignore further extends.
+- **Level marks:** when an extend carries a level that differs from the last
+  mark (visionOS hand height), a mark is added at that point. The aircraft
+  switches its target level as it passes each mark. Paths drawn on flat
+  screens carry no marks; there, `setLevel` changes the level immediately.
+- **Commit:** on every extend, check three things:
+  1. The last point is inside the capture radius of a runway that accepts
+     this kind.
+  2. The tail's direction (the last 4 u) is within that runway's heading
+     tolerance.
+  3. The path is long enough for the aircraft to get down to the ground by
+     the threshold (see 4.6).
+
+  If all three pass, replace the tail with a generated glide segment blended
+  onto the centreline, plan the descent, set `committedRunway`, and ignore
+  further extends. A path ending at a runway that doesn't accept the kind
+  emits `pathRejected(.wrongRunway)`. One that passes 1 and 2 but not 3 emits
+  `pathRejected(.tooHigh)`, and drawing continues so the player can lengthen
+  it.
 - **End of path:** an uncommitted path that runs out leaves the aircraft
   flying straight on its last heading.
 
@@ -280,16 +317,35 @@ public struct FlightPath: Sendable {
   aircraft to `.landing(runway, s: 0)`. It then follows the centreline,
   decelerating over the runway length, with altitude going to 0. It can't
   collide while landing, and it leaves the max-airborne count.
-- **Glide:** altitude lerps down over the last few units of a committed path.
-  It is cosmetic, but it's computed here, so it's deterministic and identical
-  on every platform.
+- **Descent planning:**
+  - At commit, the simulation works out how much path the aircraft needs to
+    get from its planned height to the ground. That's level-to-level descents
+    at its descent rate, plus a short final glide from level 1 (about 6 u).
+  - It adds a level mark that starts the descent as late as possible while
+    still reaching the ground at the threshold, which keeps high traffic out
+    of the lower levels for longer.
+  - Marks the player already drew on visionOS are kept. The planner only adds
+    what's still needed.
+  - The ribbon shows where the descent starts.
+- **Single-level maps:** the same planner runs and only adds the final glide,
+  so no path is ever too high.
 
 ### 4.7 Separation and crashes
 
-- **Collision:** when the distance between two aircraft is less than the sum
-  of their radii, and both are airborne and not landing, they crash.
-- **Warning:** a conflict begins below the warning distance and ends above
-  1.1 × that distance. The gap stops the warning flickering on and off.
+- **Collision:** two aircraft crash when all of these are true:
+  - the horizontal distance between them is less than the sum of their
+    radii;
+  - their heights differ by less than 0.6 level units;
+  - both are airborne and not landing.
+
+  The 0.6 threshold means an aircraft halfway between two levels conflicts
+  with traffic on both.
+- **Warning:** a conflict begins below the warning distance (with the same
+  height test) and ends above 1.1 × that distance. The gap stops the warning
+  flickering on and off.
+- **Obstacles:** a no-fly zone has a footprint (a circle or polygon) and a
+  `ceiling` level. An aircraft inside the footprint and below
+  `ceiling + 0.4` crashes into it. Above that, it flies over.
 - **After a crash:** the simulation freezes. Presentation plays the slow
   motion and visual effects, and the UI shows the game-over panel.
 - **Relaxed mode:** instead of ending the game, a crash removes both aircraft
@@ -310,6 +366,7 @@ Difficulty curves come from data (`DifficultyProfile`, decoded from JSON):
     [90, { "prop": 0.45, "jet": 0.35, "heli": 0.2 }]
   ],
   "speedScale": [[0, 1.0], [300, 1.1]],
+  "arrivalLevels": { "prop": [1, 2], "jet": [2, 3], "heli": [1] },
   "warningLead": 2.0
 }
 ```
@@ -320,13 +377,15 @@ The spawn interval decays exponentially:
 Each spawn works like this:
 
 1. Draw the kind from `mix(t)`.
-2. Pick an entry point on an allowed edge, 5 u outside the bounds, with a
+2. Draw the arrival level from `arrivalLevels[kind]`, limited to the levels
+   the map has.
+3. Pick an entry point on an allowed edge, 5 u outside the bounds, with a
    heading toward a point in the interior (biased toward the centre, ±30°).
-3. Emit `arrivalWarning` `warningLead` seconds early.
-4. **Fairness check:** project the newcomer's straight-line course 4 s ahead
-   against every aircraft's projected course. If the closest approach is
-   under twice the warning distance, re-pick the edge (up to 6 tries), or else
-   delay the spawn by 0.5 s.
+4. Emit `arrivalWarning` `warningLead` seconds early.
+5. **Fairness check:** project the newcomer's straight-line course 4 s ahead
+   against the projected course of every aircraft at, or moving through, the
+   same level. If the closest approach is under twice the warning distance,
+   re-pick the edge (up to 6 tries), or else delay the spawn by 0.5 s.
 
 ### 4.9 Determinism, replays and the daily challenge
 
@@ -386,6 +445,12 @@ public final class GameSession {
 - On `.began`, it picks the nearest aircraft within the grab radius. The grab
   radius is in field units and supplied by the platform layer.
 - It forwards moves as `extendPath` and releases as `finishPath`.
+- On flat screens, a tap (released before the drag threshold) on an aircraft
+  opens its ▲/▼ controls, and the controller issues `setLevel`.
+- On visionOS, pointer events carry a height already converted to level
+  units by the platform layer. Relative to where the pinch started, each
+  1.0 level unit of hand movement is one level. Rounding has hysteresis, so
+  the level doesn't flicker at a boundary.
 - It has no platform types, so it is unit-tested with synthetic pointer
   streams.
 
@@ -409,12 +474,15 @@ FieldRoot          scaled to fit the view or volume
 ├─ Runways         built from level data; class colour + glyph
 ├─ AircraftLayer   one pooled entity per aircraft
 ├─ PathLayer       one LowLevelMesh ribbon per path
-├─ MarkerLayer     arrival arrows, conflict rings, runway glow
+├─ MarkerLayer     arrows, rings, glow, drop lines
+├─ LevelPlanes     faint grids, shown while drawing
 └─ Lighting        directional light + IBL
 ```
 
 **Coordinate mapping:** field `(x, y)` maps to RealityKit
-`(x, altitude, −y)`, and a heading `θ` maps to a rotation of `θ` about `+Y`.
+`(x, altitude × levelSpacing, −y)`. `levelSpacing` is set per platform:
+about 6 u on flat screens, and about 12 u (roughly 8 cm) in the default
+visionOS volume. A heading `θ` maps to a rotation of `θ` about `+Y`.
 RealityKit is Y-up, so field `(cos θ, sin θ)` lands on
 `(cos θ, 0, −sin θ)`, which is consistent.
 
@@ -452,18 +520,24 @@ propeller spin, rotor blur and ring pulses.
   - Each aircraft entity carries `GroundingShadowComponent` and, on visionOS,
     `InputTargetComponent`, an enlarged `CollisionComponent` and
     `HoverEffectComponent`.
+  - On multi-level maps it shows the level badge (one to three chevrons).
 - **`PathPresenter`:** one `LowLevelMesh` per path, allocated for 2,000 points
   (4,000 vertices). Each vertex has a position (`float3`) and a UV (`u` = arc
   length, `v` = side), and the mesh is rewritten only when the path changes.
   A shader-graph material draws dashes from `u`, fades the part that has been
   flown, and takes a `Tint` parameter: white while drawing, the runway colour
-  once committed. CPU writes are plenty at this size. The API allows Metal
-  compute writes if we ever need them.
+  once committed. Vertices sit at the path's planned height, so level changes
+  and the planned descent show as steps in the ribbon. CPU writes are plenty
+  at this size. The API allows Metal compute writes if we ever need them.
 - **`MarkerPresenter`:**
   - Arrival arrows at the field edge, with the kind's glyph and a countdown
     pulse.
   - Conflict rings: flat disks under aircraft, with a pulsing shader graph.
-  - A runway glow while an aircraft that can use it is being dragged.
+  - A runway glow while an aircraft that can use it is being dragged, and an
+    amber flash at the end of a path that's too high to land.
+  - On multi-level maps: drop lines from each aircraft to its shadow, with a
+    tick per level, and level planes that fade in while a path is being drawn
+    on visionOS or while an aircraft's ▲/▼ controls are open on flat screens.
 - **Effects:** `ParticleEmitterComponent` presets authored in Reality
   Composer Pro: jet contrails, touchdown puffs, crash smoke and sparks. All
   subtle.
@@ -499,7 +573,7 @@ same `PathDrawingController`.
 |----------------------|--------------------------------------------------------------|-----------------------------------------------------------|
 | iPhone, iPad         | `SpatialEventGesture` (several touches, each with an ID)     | Screen point → camera ray → ground plane (our own math)   |
 | Mac                  | `DragGesture(minimumDistance: 0)`                            | Same as iPhone and iPad                                   |
-| visionOS volume      | `DragGesture().targetedToAnyEntity()`; handles indirect pinch and direct touch | `value.convert(location3D, from: .local, to: fieldRoot)`, then drop the height |
+| visionOS volume      | `DragGesture().targetedToAnyEntity()`; handles indirect pinch and direct touch | `value.convert(location3D, from: .local, to: fieldRoot)`; horizontal → field point, height → level units |
 | visionOS immersive   | Same as the volume                                           | Same as the volume                                        |
 
 - **Grab radius:**
@@ -507,11 +581,18 @@ same `PathDrawingController`.
   - visionOS: aircraft collision shapes are about twice their visual size,
     plus nearest-aircraft snapping in field space, so gaze imprecision doesn't
     matter.
-- **Spike S2** settles three visionOS questions before we commit:
+- **Level controls** (multi-level maps only):
+  - visionOS: hand height while drawing (see 4.10), plus pinch-and-flick up
+    or down on an aircraft.
+  - iPhone and iPad: tap an aircraft for ▲/▼ buttons beside it.
+  - Mac: scroll over an aircraft, or press ↑/↓ while hovering.
+- **Spike S2** settles four visionOS questions before we commit:
   - Does an indirect-pinch drag feel better projected straight down, or
     raycast from the head through the hand?
   - Can two hands drive two paths at the same time?
   - Does `SpatialEventGesture` with `selectionRay` beat targeted drags?
+  - Can players reliably pick one of three levels by hand height, and with
+    what band size? If not, pinch-and-flick becomes the main level control.
 - **Apple Pencil** works as touch for free. Pencil hover can show a preview
   of which aircraft will be grabbed.
 
@@ -571,7 +652,8 @@ A custom crash pattern on iPhone uses Core Haptics.
 
 - **v1 is volume-first.** The same `FieldRoot` as iOS is scaled so the field
   spans about 90% of the volume's width. With a 160 u field in a 1.2 m volume,
-  a jet is about 4.5 cm long.
+  a jet is about 4.5 cm long, and flight levels are about 8 cm apart, so
+  three levels reach roughly 24 cm above the table.
 - **Resizing:** read the volume size with `GeometryReader3D`, convert it to
   scene units, and rescale `FieldRoot`. Gameplay is unaffected because it all
   happens in field units.
@@ -589,6 +671,10 @@ A custom crash pattern on iPhone uses Core Haptics.
 - **Indirect pinch is the main input.** Look at the aircraft, pinch, and move
   your hand in your lap. Direct touch (reaching into the volume) also works,
   but we don't design around it because it is tiring over a 10-minute run.
+- **Hand height picks the level** while drawing, and level planes fade in so
+  you can see which level you're on. The hand-height band matches the visual
+  level spacing, so with direct touch your fingertip lines up with the
+  planes.
 - **Gaze highlight:** `HoverEffectComponent` on every aircraft, with group
   IDs so the aircraft and its ring highlight together. This tells the player
   what a pinch will grab, which is the most important usability detail on
@@ -619,8 +705,8 @@ runway itself, and the ambient bed comes from the terrain.
 - **Placement:** the airfield sits on a real table, via an `AnchorEntity` on
   a horizontal plane classified as a table, with a manual-placement fallback.
 - **Arrivals:** aircraft enter from a ring around the room at about eye height
-  and descend along scripted 3D approach curves. They join the 2D field at
-  its edge, which is when they become controllable.
+  and descend along scripted 3D approach curves to their arrival level. They
+  join the field at its edge, which is when they become controllable.
 - **Rules:** unchanged. The approach is presentation only.
 
 ### 8.6 SharePlay co-op (post-v1)
@@ -688,6 +774,7 @@ runway itself, and the ambient bed comes from the terrain.
     "id": "coastal-field",
     "name": "Coastal Field",
     "field": { "width": 160, "height": 100 },
+    "flightLevels": 1,
     "terrain": "Maps/CoastalField",
     "runways": [
       { "id": "long",  "accepts": ["jet"],  "threshold": [38, 30],
@@ -704,7 +791,16 @@ runway itself, and the ambient bed comes from the terrain.
   ```
 
   Runway headings in JSON are degrees, counter-clockwise from east, and are
-  converted to radians when decoded.
+  converted to radians when decoded. A multi-level map with terrain looks
+  like this (excerpt from Mountain Valley):
+
+  ```json
+  "flightLevels": 3,
+  "noFlyZones": [
+    { "id": "north-peak", "circle": { "center": [84, 74], "radius": 10 },
+      "ceiling": 2 }
+  ]
+  ```
 - **Budgets:**
 
   | Asset              | Budget                                       |
@@ -715,7 +811,9 @@ runway itself, and the ambient bed comes from the terrain.
   | Textures           | ≤ 2048², ASTC                                |
   | Total memory       | < 300 MB                                     |
 - **Level validator:** a tool that fails CI if runways sit outside the field,
-  capture zones overlap, or approach corridors are blocked.
+  capture zones overlap, approach corridors are blocked, or a no-fly zone's
+  ceiling is at or above the map's top level (which would make it
+  impassable).
 
 ## 12. Performance targets
 
@@ -733,7 +831,9 @@ runway itself, and the ambient bed comes from the terrain.
   - Geometry, and path smoothing and resampling.
   - Pursuit following.
   - Landing capture, including heading-tolerance edge cases.
-  - Collision and hysteresis.
+  - Collision and hysteresis, including the vertical separation check.
+  - Climb and descent, level marks, descent planning and "too high"
+    rejection, and obstacle collisions.
   - Spawn fairness and difficulty curves.
   - Level decoding and validation.
   - `PathDrawingController` with synthetic multi-touch streams.

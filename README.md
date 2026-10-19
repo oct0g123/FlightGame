@@ -24,7 +24,8 @@ diorama on your table.
 | Art direction | Low-poly diorama: matte materials, soft daylight, tilted miniature camera. |
 | Metal         | Used for specific jobs: `LowLevelMesh` path ribbons and shader-graph materials. No custom renderer. |
 | GameplayKit   | Not a core dependency. Swift enums and our own seeded RNG replace it. |
-| Gameplay core | Pure-Swift 2D simulation: deterministic, fixed timestep at 60 Hz, testable on Linux CI. |
+| Gameplay core | Pure-Swift simulation, 2D plus up to three flight levels: deterministic, fixed timestep at 60 Hz, testable on Linux CI. |
+| Using 3D      | Flight levels: aircraft stack at different heights and pass over each other. Same rules on every platform. On Vision Pro you set the level with your hand. Coastal Field stays single-level. |
 | UI            | SwiftUI everywhere. Ornaments and attachments on visionOS.          |
 | visionOS      | A volumetric tabletop airfield first. Immersive "Tower Mode" after launch. |
 | Minimum OS    | iOS, iPadOS, macOS and visionOS 26.                                 |
