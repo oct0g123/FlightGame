@@ -1,0 +1,14 @@
+{
+  "id": "relaxed",
+  "spawnInterval": { "start": 7.5, "end": 2.4, "halfLife": 120 },
+  "maxAirborne": [[0, 2], [90, 5], [240, 8], [480, 12]],
+  "mix": [
+    [0, { "prop": 1.0 }],
+    [45, { "prop": 0.6, "jet": 0.4 }],
+    [120, { "prop": 0.45, "jet": 0.35, "heli": 0.2 }]
+  ],
+  "speedScale": [[0, 0.85]],
+  "arrivalLevels": { "prop": [1, 2], "jet": [2, 3], "heli": [1] },
+  "warningLead": 2.5,
+  "strikes": 3
+}

@@ -1,0 +1,14 @@
+{
+  "id": "classic",
+  "spawnInterval": { "start": 6.0, "end": 1.6, "halfLife": 90 },
+  "maxAirborne": [[0, 3], [60, 6], [180, 10], [360, 16]],
+  "mix": [
+    [0, { "prop": 1.0 }],
+    [30, { "prop": 0.6, "jet": 0.4 }],
+    [90, { "prop": 0.45, "jet": 0.35, "heli": 0.2 }]
+  ],
+  "speedScale": [[0, 1.0], [300, 1.1]],
+  "arrivalLevels": { "prop": [1, 2], "jet": [2, 3], "heli": [1] },
+  "warningLead": 2.0,
+  "strikes": 1
+}

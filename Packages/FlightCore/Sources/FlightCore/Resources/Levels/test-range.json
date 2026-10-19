@@ -1,0 +1,20 @@
+{
+  "id": "test-range",
+  "name": "Test Range",
+  "field": { "width": 160, "height": 100 },
+  "flightLevels": 3,
+  "runways": [
+    { "id": "long", "accepts": ["jet"], "threshold": [30, 22],
+      "heading": 0, "length": 50, "captureRadius": 6, "headingTolerance": 35 },
+    { "id": "short", "accepts": ["prop"], "threshold": [104, 72],
+      "heading": 180, "length": 28, "captureRadius": 5, "headingTolerance": 35 },
+    { "id": "pad", "accepts": ["heli"], "threshold": [132, 26],
+      "anyHeading": true, "captureRadius": 4 }
+  ],
+  "noFlyZones": [
+    { "id": "north-peak", "circle": { "center": [80, 50], "radius": 10 }, "ceiling": 2 },
+    { "id": "west-ridge", "circle": { "center": [38, 76], "radius": 8 }, "ceiling": 1 }
+  ],
+  "spawnEdges": ["north", "east", "south", "west"],
+  "profiles": ["classic", "relaxed"]
+}

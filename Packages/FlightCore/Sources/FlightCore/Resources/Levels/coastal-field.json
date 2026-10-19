@@ -1,0 +1,17 @@
+{
+  "id": "coastal-field",
+  "name": "Coastal Field",
+  "field": { "width": 160, "height": 100 },
+  "flightLevels": 1,
+  "runways": [
+    { "id": "long", "accepts": ["jet"], "threshold": [38, 30],
+      "heading": 0, "length": 52, "captureRadius": 6, "headingTolerance": 35 },
+    { "id": "short", "accepts": ["prop"], "threshold": [62, 66],
+      "heading": 45, "length": 28, "captureRadius": 5, "headingTolerance": 35 },
+    { "id": "pad", "accepts": ["heli"], "threshold": [124, 72],
+      "anyHeading": true, "captureRadius": 4 }
+  ],
+  "noFlyZones": [],
+  "spawnEdges": ["north", "east", "south", "west"],
+  "profiles": ["classic", "relaxed"]
+}

@@ -15,7 +15,11 @@ let package = Package(
         .library(name: "FlightCore", targets: ["FlightCore"])
     ],
     targets: [
-        .target(name: "FlightCore", swiftSettings: swiftSettings),
+        .target(
+            name: "FlightCore",
+            resources: [.copy("Resources/Levels"), .copy("Resources/Difficulty")],
+            swiftSettings: swiftSettings
+        ),
         .testTarget(
             name: "FlightCoreTests",
             dependencies: ["FlightCore"],
