@@ -27,6 +27,11 @@ let package = Package(
                 .product(name: "FlightContent", package: "FlightContent"),
             ],
             swiftSettings: swiftSettings
-        )
+        ),
+        .testTarget(
+            name: "FlightSceneTests",
+            dependencies: ["FlightScene"],
+            swiftSettings: swiftSettings
+        ),
     ]
 )

@@ -40,22 +40,33 @@ enum PlaceholderAirfield {
     }
 
     #if !os(visionOS)
-    /// A camera about 55° above the horizon, far enough back to fit the field
-    /// on a landscape screen. On visionOS the viewer's own eyes are the camera.
+    static let cameraName = "PlaceholderCamera"
+
+    /// 55° above the horizon with a narrow 30° lens, for the miniature look.
+    static let cameraFit = CameraFit(
+        fieldSize: size,
+        pitch: 55 * .pi / 180,
+        verticalFieldOfView: 30 * .pi / 180
+    )
+
+    /// The flat-screen camera. On visionOS the viewer's own eyes are the camera.
     static func makeCamera() -> Entity {
-        let pitch: Float = 55 * .pi / 180
-        let distance: Float = 1.6
         let camera = Entity()
-        camera.name = "PlaceholderCamera"
+        camera.name = cameraName
         camera.components.set(
-            PerspectiveCameraComponent(near: 0.01, far: 20, fieldOfViewInDegrees: 30)
+            PerspectiveCameraComponent(
+                near: 0.01,
+                far: 20,
+                fieldOfViewInDegrees: cameraFit.verticalFieldOfView * 180 / .pi
+            )
         )
-        camera.look(
-            at: .zero,
-            from: [0, distance * sin(pitch), distance * cos(pitch)],
-            relativeTo: nil
-        )
+        aim(camera, aspect: 16 / 10)
         return camera
+    }
+
+    /// Moves the camera back far enough that the whole field fits a view of this aspect ratio.
+    static func aim(_ camera: Entity, aspect: Float) {
+        camera.look(at: .zero, from: cameraFit.position(aspect: aspect), relativeTo: nil)
     }
     #endif
 
