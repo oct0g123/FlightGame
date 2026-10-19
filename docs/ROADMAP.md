@@ -58,6 +58,9 @@ simulator, on the Mac, and on the Vision Pro simulator, and CI is green.
   tests, run on Linux and macOS in CI).
 - [ ] Playtest on device and tune: speeds, turn rates, spawn curve, grab
   radius, path smoothing, and how levels feel.
+- [ ] Smarten the autopilot. Today it flies straight through terrain and
+  stacks aircraft at shared approach points. That's fine for tests, but not
+  good enough for attract mode or balance runs.
 
 **Exit check:** the game is *fun with circles*, both single-level and with
 three levels. If the loop isn't fun at this stage, art won't fix it, and this
