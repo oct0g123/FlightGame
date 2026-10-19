@@ -21,6 +21,7 @@ diorama on your table.
 | Area          | Decision                                                            |
 |---------------|---------------------------------------------------------------------|
 | Rendering     | RealityKit on every platform. SceneKit is soft-deprecated and can't do visionOS volumes. |
+| Art direction | Low-poly diorama: matte materials, soft daylight, tilted miniature camera. |
 | Metal         | Used for specific jobs: `LowLevelMesh` path ribbons and shader-graph materials. No custom renderer. |
 | GameplayKit   | Not a core dependency. Swift enums and our own seeded RNG replace it. |
 | Gameplay core | Pure-Swift 2D simulation: deterministic, fixed timestep at 60 Hz, testable on Linux CI. |

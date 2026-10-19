@@ -130,9 +130,7 @@ without help and wants another go.
    to go to 27 now?
 3. **Business model.** Paid up front, free with map packs, or pitching to
    Apple Arcade? The answer affects whether StoreKit is in v1.
-4. **Art direction.** I'm proposing a low-poly diorama. Is that the look you
-   want, or would you prefer something flatter and more top-down like the
-   original?
+4. ~~**Art direction.**~~ **Decided:** low-poly diorama.
 5. **visionOS scope for v1.** I recommend the volume only, with Tower Mode
    after launch. Or should immersive play be part of launch?
 6. **Failure rules.** One crash ends the run in Classic, and Relaxed has three
@@ -143,3 +141,5 @@ without help and wants another go.
    available from the start?
 9. **Multiplayer.** How important is SharePlay co-op to you? It's cheap to
    keep possible, but expensive to build.
+10. **Using 3D in the rules.** Should altitude be part of gameplay, especially
+    on Vision Pro? Under discussion.
