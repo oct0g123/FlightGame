@@ -10,7 +10,7 @@ struct SpawnerState: Sendable {
 struct ScriptedArrival: Sendable {
     let kind: AircraftKind
     let level: Int
-    var edge: Edge
+    var edge: FieldEdge
     /// Position along the edge, 0–1.
     var offset: Float
     /// Where it heads: a point in the middle part of the field, as fractions of its size.
@@ -143,7 +143,7 @@ extension World {
             heading: (target - entry).heading, spawnTime: spawnTime)
     }
 
-    private func entryPoint(edge: Edge, offset: Float) -> Vec2 {
+    private func entryPoint(edge: FieldEdge, offset: Float) -> Vec2 {
         let size = level.size
         let outside = Self.entryDistance
         switch edge {

@@ -15,13 +15,13 @@ public struct Level: Identifiable, Sendable {
     public let flightLevels: Int
     public let runways: [Runway]
     public let noFlyZones: [NoFlyZone]
-    public let spawnEdges: [Edge]
+    public let spawnEdges: [FieldEdge]
     /// Difficulty profiles this map can be played with.
     public let profiles: [String]
 
     public init(
         id: String, name: String, size: Vec2, flightLevels: Int, runways: [Runway],
-        noFlyZones: [NoFlyZone] = [], spawnEdges: [Edge] = Edge.allCases,
+        noFlyZones: [NoFlyZone] = [], spawnEdges: [FieldEdge] = FieldEdge.allCases,
         profiles: [String] = []
     ) {
         self.id = id
@@ -150,7 +150,7 @@ public struct NoFlyZone: Identifiable, Sendable {
 }
 
 /// A side of the playfield that aircraft can arrive from.
-public enum Edge: String, CaseIterable, Codable, Sendable {
+public enum FieldEdge: String, CaseIterable, Codable, Sendable {
     case north, east, south, west
 }
 
@@ -176,8 +176,8 @@ extension Level: Decodable {
             flightLevels: try container.decodeIfPresent(Int.self, forKey: .flightLevels) ?? 1,
             runways: try container.decode([Runway].self, forKey: .runways),
             noFlyZones: try container.decodeIfPresent([NoFlyZone].self, forKey: .noFlyZones) ?? [],
-            spawnEdges: try container.decodeIfPresent([Edge].self, forKey: .spawnEdges)
-                ?? Edge.allCases,
+            spawnEdges: try container.decodeIfPresent([FieldEdge].self, forKey: .spawnEdges)
+                ?? FieldEdge.allCases,
             profiles: try container.decodeIfPresent([String].self, forKey: .profiles) ?? []
         )
     }

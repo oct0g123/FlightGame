@@ -1,7 +1,10 @@
 import FlightScene
 import SwiftUI
 
-/// The app's root view: the game, with the UI layered over it.
+/// The app's root view.
+///
+/// During Phase 1, iPhone, iPad and Mac open the 2D playtest; the 3D preview
+/// is in its options menu. Vision Pro shows the 3D placeholder until Phase 3.
 public struct RootView: View {
     public init() {}
 
@@ -12,17 +15,12 @@ public struct RootView: View {
                 TitleBadge()
             }
         #else
-        ZStack(alignment: .top) {
-            GameView()
-                .ignoresSafeArea()
-            TitleBadge()
-                .padding()
-        }
+        PlaytestView()
         #endif
     }
 }
 
-/// The game's name on glass. Stands in for the title screen until Phase 2.
+/// The game's name on glass.
 struct TitleBadge: View {
     var body: some View {
         Text("Glidepath")

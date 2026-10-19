@@ -82,7 +82,7 @@ public struct AircraftPair: Hashable, Comparable, Sendable {
 public struct PendingArrival: Equatable, Sendable {
     public let kind: AircraftKind
     public let level: Int
-    public let edge: Edge
+    public let edge: FieldEdge
     /// Where it appears, just outside the field.
     public let entry: Vec2
     public let heading: Float
